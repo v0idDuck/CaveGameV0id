@@ -353,8 +353,11 @@ namespace CaveGame
         public Monster(GameMap map)
         {
             entity = '&';
-            entityX = rnd.Next(50, map.mapWidth - 2);
-            entityY = rnd.Next(1, map.mapHeight - 2);
+            if (map.GetCharOfMap(entityY, entityX) == '#')
+            {
+                entityX = rnd.Next(50, map.mapWidth - 2);
+                entityY = rnd.Next(1, map.mapHeight - 2);
+            }
         }
 
     }
