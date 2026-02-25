@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Data;
 
 namespace CaveGame
 {
@@ -15,10 +16,17 @@ namespace CaveGame
 
             Menu menu = new Menu();
             GameMap map = new GameMap();
-            Person person = new Person(map);
+            Person person = new Person('@', 1, 1);
+            Light light = new Light(map, '*');
+            Monster monster = new Monster(map);
             GetInput input = new GetInput();
             GUI gui = new GUI();
             Render render = new Render();
+
+            List<Entity> list = new List<Entity>();
+            list.Add(person);
+            list.Add(light);
+            list.Add(monster);
 
             if (menu.GetInputMenu())
             {
@@ -28,9 +36,10 @@ namespace CaveGame
                 {
                     gui.FPSCounter();
                     Console.SetCursorPosition(0, 0);
-                    render.Draw(map, person, person.CheckPosLight());
+                    person.CheckCollisions(list, render);
+                    render.Draw(map, person, list);
                     gui.ShowFPS(map);
-                    input.GetInputMenu(person, map, render, gui);
+                    input.GetInputMenu(person, map, render);
                 }
             }
             else
@@ -102,14 +111,15 @@ namespace CaveGame
             else lightEnd = DateTime.MinValue;
         }
 
-        public void Draw(GameMap map, Person person, bool flag)
+        public void ActivateVision()
         {
-            if (flag)
-            {
-                lightEnd = DateTime.Now.AddSeconds(5);
-                visionFlag = true;
-            }
-            else if (visionFlag && DateTime.Now > lightEnd)
+            lightEnd = DateTime.Now.AddSeconds(5);
+            visionFlag = true;
+        }
+
+        public void Draw(GameMap map, Person person, List<Entity> list)
+        {
+            if (visionFlag && DateTime.Now > lightEnd)
             {
                 visionFlag = false;
                 Console.Clear();
@@ -135,67 +145,113 @@ namespace CaveGame
 
                 fieldOnScreen = true;
 
-                Console.SetCursorPosition(person.personX, person.personY);
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write(person.person);
-                Console.ResetColor();
-
-                if (person.personX != person.lastPersonX || person.personY != person.lastPersonY)
+                foreach (var ent in list)
                 {
-                    Console.SetCursorPosition(person.lastPersonX, person.lastPersonY);
-                    Console.WriteLine(map.GetCharOfMap(person.lastPersonY, person.lastPersonX));
-                }    
+                    if (ent is Person p)
+                    {
+                        Console.SetCursorPosition(person.entityX, person.entityY);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Write(person.entity);
+                        Console.ResetColor();
 
+                        if (person.entityX != person.lastEntityX || person.entityY != person.lastEntityY)
+                        {
+                            Console.SetCursorPosition(person.lastEntityX, person.lastEntityY);
+                            Console.WriteLine(map.GetCharOfMap(person.lastEntityY, person.lastEntityX));
+                        }    
+                    }
+                    if (ent is Light light)
+                    {
+                        if (light.entityX != -1 && light.entityY != -1)
+                        {
+                            Console.SetCursorPosition(light.entityX, light.entityY);
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write(light.entity);
+                            Console.ResetColor();
+                        }
+                    }
+                    if (ent is Monster monster)
+                    {
+                        Console.SetCursorPosition(monster.entityX, monster.entityY);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Write(monster.entity);
+                        Console.ResetColor();
 
-                if (person.lightX != -1 && person.lightY != -1)
-                {
-                    Console.SetCursorPosition(person.lightX, person.lightY);
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write(person.light);
-                    Console.ResetColor();
+                        if (monster.entityX != monster.lastEntityX || monster.entityY != monster.lastEntityY)
+                        {
+                            Console.SetCursorPosition(monster.lastEntityX, monster.lastEntityY);
+                            Console.WriteLine(map.GetCharOfMap(monster.lastEntityY, monster.lastEntityX));
+                        }
+                    }
                 }
-
-
             }
             else
             {
                 fieldOnScreen = false;
+                List<int> cords = new List<int>();
+
+                foreach (var ent in list)
+                {
+                    if (Math.Abs(ent.entityX - person.entityX) < 4 && Math.Abs(ent.entityY - person.entityY) < 4)
+                    {
+                        cords.Add(ent.entityX);
+                        cords.Add(ent.entityY);
+
+                        Console.SetCursorPosition(ent.entityX, ent.entityY);
+
+                        if (ent is Person)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write(ent.entity);
+                            Console.ResetColor();;
+                        }
+                        if (ent is Light light)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write(light.entity);
+                            Console.ResetColor();
+                        }
+                        if (ent is Monster monster)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write(monster.entity);
+                            Console.ResetColor();
+                        }
+                    }
+                }
 
                 for (int y = -4; y <= 4; y++)
                 {
-                    flag = true;
-
                     for (int x = -4; x <= 4; x++)
                     {
-                        if (person.personY + y >= 0 && person.personY + y < map.mapHeight && person.personX + x >= 0 && person.personX + x < map.mapWidth)
+                        if (person.entityY + y >= 0 && person.entityY + y < map.mapHeight && person.entityX + x >= 0 && person.entityX + x < map.mapWidth)
                         {
-                            if (flag)
+
+                            bool isEntityHere = false;
+
+                            for (int i = 0; i < cords.Count - 1; i += 2)
                             {
-                                Console.SetCursorPosition(person.personX + x, person.personY + y);
-                                flag = false;
+                                if (cords[i] == person.entityX + x && cords[i + 1] == person.entityY + y)
+                                {
+                                    isEntityHere = true;
+                                    break;
+                                }
                             }
+
+                            if (isEntityHere)
+                            {
+                                continue;
+                            }
+
+                            Console.SetCursorPosition(person.entityX + x, person.entityY + y);
+
                             if (y == -4 || y == 4 || x == -4 || x == 4)
                             {
                                 Console.Write(" ");
                             }
                             else
                             {
-                                if (person.personY + y == person.personY && person.personX + x == person.personX)
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.Write(person.person);
-                                    Console.ResetColor();
-                                }
-                                else if (person.personY + y == person.lightY && person.personX + x == person.lightX)
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.Write(person.light);
-                                    Console.ResetColor();
-                                }
-                                else
-                                {
-                                    Console.Write(map.GetCharOfMap(person.personY + y, person.personX + x));
-                                }
+                                Console.Write(map.GetCharOfMap(person.entityY + y, person.entityX + x));
                             }
                         }
                     }
@@ -206,58 +262,55 @@ namespace CaveGame
 
     class Entity
     {
-        public char entity;
-        public int entityX;
-        public int entityY;
-        public int lastEntityX;
-        public int lastEntityY;
-    }
-
-    class Person
-    {
-        private static Random rnd = new Random();
-
-        public Person(GameMap map)
-        {
-            while (true)
-            {
-                if (map.GetCharOfMap(lightY, lightX) == '#')
-                {
-                    lightX = rnd.Next(1, map.mapWidth - 2);
-                    lightY = rnd.Next(1, map.mapHeight - 2);
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-
-        public char person { get; } = '@';
-        public int personX { get; private set; } = 1;
-        public int personY { get; private set; } = 1;
-        public int lastPersonX { get; private set; } = 1;
-        public int lastPersonY { get; private set; } = 1;
-
-
-        public char light { get; } = '*';
-        public int lightX { get; private set; } = 0;
-        public int lightY { get; private set; } = 0;
-
-        public bool CheckPosLight()
-        {
-            if (lightX == personX && lightY == personY)
-            {
-                lightY = lightX = -1;
-                return true;
-            }
-            return false;
-        }
+        public char entity { get; protected set; }
+        public int entityX { get; protected set; }
+        public int entityY { get; protected set; }
+        public int lastEntityX { get; protected set; }
+        public int lastEntityY { get; protected set; }
 
         public void PersonLastPosition()
         {
-            lastPersonX = personX;
-            lastPersonY = personY;
+            lastEntityX = entityX;
+            lastEntityY = entityY;
+        }
+
+        public void UpdatePosition(GameMap map)
+        {
+            if (map.GetCharOfMap(entityY, entityX) != '#')
+            {
+
+            }
+        }
+
+        public void CheckCollisions(List<Entity> list, Render render)
+        {
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                var ent = list[i];
+
+                if (ent != this && ent.entityX == this.entityX && ent.entityY == this.entityY)
+                {
+                    if (ent is Light light)
+                    {
+                        render.ActivateVision();
+                        list.RemoveAt(i);
+                    }
+                    if (ent is Monster monster)
+                    {
+                        Environment.Exit(0);
+                    }
+                }
+            }
+        }
+    }
+
+    class Person : Entity
+    {
+        public Person(char entity, int x, int y)
+        {
+            this.entity = entity;
+            entityX = x;
+            entityY = y;
         }
 
         public void TryMovePerson(int newY, int newX, GameMap map)
@@ -267,11 +320,43 @@ namespace CaveGame
             {
                 if (map.GetCharOfMap(newY, newX) != '#')
                 {
-                    personX = newX;
-                    personY = newY;
+                    entityX = newX;
+                    entityY = newY;
                 }
             }
         }
+    }
+
+    class Light : Entity
+    {
+        private static Random rnd = new Random();
+
+        public Light(GameMap map, char entity)
+        {
+            while (true)
+            {
+                entityX = rnd.Next(1, map.mapWidth - 2);
+                entityY = rnd.Next(1, map.mapHeight - 2);
+
+                if (map.GetCharOfMap(entityY, entityX) != '#')
+                {
+                    this.entity = entity;
+                    break;
+                }
+            }
+        }
+    }
+
+    class Monster : Entity
+    {
+        private static Random rnd = new Random();
+        public Monster(GameMap map)
+        {
+            entity = '&';
+            entityX = rnd.Next(50, map.mapWidth - 2);
+            entityY = rnd.Next(1, map.mapHeight - 2);
+        }
+
     }
 
     class GetInput
@@ -285,7 +370,7 @@ namespace CaveGame
         {
             return (GetAsyncKeyState(vKey) & 0x8000) != 0;
         }
-        public void GetInputMenu(Person person, GameMap map, Render render, GUI gui)
+        public void GetInputMenu(Person person, GameMap map, Render render)
         {
 
             if ((DateTime.Now - lastMoveTime).TotalMilliseconds < 100)
@@ -299,22 +384,22 @@ namespace CaveGame
 
             if (IsKeyDown(0x57))
             {
-                person.TryMovePerson(person.personY - 1, person.personX, map);
+                person.TryMovePerson(person.entityY - 1, person.entityX, map);
                 moved = true;
             }
             if (IsKeyDown(0x53))
             {
-                person.TryMovePerson(person.personY + 1, person.personX, map);
+                person.TryMovePerson(person.entityY + 1, person.entityX, map);
                 moved = true;
             }
             if (IsKeyDown(0x41))
             {
-                person.TryMovePerson(person.personY, person.personX - 1, map);
+                person.TryMovePerson(person.entityY, person.entityX - 1, map);
                 moved = true;
             }
             if (IsKeyDown(0x44))
             {
-                person.TryMovePerson(person.personY, person.personX + 1, map);
+                person.TryMovePerson(person.entityY, person.entityX + 1, map);
                 moved = true;
             }
 
