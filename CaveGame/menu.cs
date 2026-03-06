@@ -2,8 +2,9 @@
 {
     class Menu
     {
-        public bool ChoisedButton = true;
+        public int ChoisedButton = 0;
         public string Play { get; } = "Играть";
+        public string Settings { get; } = "Настройки";
         public string Quit { get; } = "Выйти";
         public string symbol { get; } = "<";
 
@@ -39,11 +40,22 @@
             int centerX = (Console.WindowWidth / 2) - (Play.Length / 2);
             int centerY = (Console.WindowHeight / 2) - 1;
 
-            if (ChoisedButton)
+            if (ChoisedButton  == 0)
             {
                 Console.SetCursorPosition(centerX, centerY);
                 Console.WriteLine(Play + symbol);
                 Console.SetCursorPosition(centerX, centerY + 1);
+                Console.WriteLine(Settings + " ");
+                Console.SetCursorPosition(centerX, centerY + 2);
+                Console.WriteLine(Quit + " ");
+            }
+            else if (ChoisedButton == 1)
+            {
+                Console.SetCursorPosition(centerX, centerY);
+                Console.WriteLine(Play + " ");
+                Console.SetCursorPosition(centerX, centerY + 1);
+                Console.WriteLine(Settings + symbol);
+                Console.SetCursorPosition(centerX, centerY + 2);
                 Console.WriteLine(Quit + " ");
             }
             else
@@ -51,11 +63,13 @@
                 Console.SetCursorPosition(centerX, centerY);
                 Console.WriteLine(Play + " ");
                 Console.SetCursorPosition(centerX, centerY + 1);
+                Console.WriteLine(Settings + " ");
+                Console.SetCursorPosition(centerX, centerY + 2);
                 Console.WriteLine(Quit + symbol);
             }
         }
 
-        public bool GetInputMenu()
+        public int GetInputMenu()
         {
             ShowMenuWord();
 
@@ -76,24 +90,28 @@
                 switch (key.Key)
                 {
                     case ConsoleKey.Enter:
-                        if (ChoisedButton == false)
+                        if (ChoisedButton == 0)
                         {
-                            return false;
+                            return 0;
+                        }
+                        else if (ChoisedButton == 1)
+                        {
+                            return 1;
                         }
                         else
                         {
-                            return true;
+                            return 2;
                         }
                     case ConsoleKey.W:
-                        if (ChoisedButton == false)
+                        if (ChoisedButton > 0)
                         {
-                            ChoisedButton = true;
+                            ChoisedButton--;
                         }
                         break;
                     case ConsoleKey.S:
-                        if (ChoisedButton == true)
+                        if (ChoisedButton < 2)
                         {
-                            ChoisedButton = false;
+                            ChoisedButton++;
                         }
                         break;
                 }

@@ -1,9 +1,11 @@
 ﻿using Game;
+using Config;
 using System;
-using System.Globalization;
-using System.Threading;
-using System.Runtime.InteropServices;
 using System.Data;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace CaveGame
 {
@@ -14,37 +16,71 @@ namespace CaveGame
             Console.Title = "CaveGame";
             Console.CursorVisible = false;
 
-            Menu menu = new Menu();
-            GameMap map = new GameMap();
-            Person person = new Person('@', 1, 1);
-            Light light = new Light(map, '*');
-            Monster monster = new Monster(map);
-            GetInput input = new GetInput();
-            GUI gui = new GUI();
-            Render render = new Render();
 
-            List<Entity> list = new List<Entity>();
-            list.Add(person);
-            list.Add(light);
-            list.Add(monster);
-
-            if (menu.GetInputMenu())
+            while (true)
             {
-                Console.Clear();
+                Menu menu = new Menu();
+                Settings set = new Settings();
+                GameMap map = new GameMap();
+                Person person = new Person('@', 1, 1);
+                Light light = new Light(map, '*');
+                ExitSymbol exit = new ExitSymbol(map);
+                GetInput input = new GetInput();
+                GUI gui = new GUI();
+                Render render = new Render();
 
-                while (true)
+                int menuChoise = menu.GetInputMenu();
+
+                List<Entity> list = new List<Entity>();
+                list.Add(person);
+                list.Add(light);
+                list.Add(exit);
+
+                for (int i = 1; i <= Settings.selectedQuantity; i++)
                 {
-                    gui.FPSCounter();
-                    Console.SetCursorPosition(0, 0);
-                    person.CheckCollisions(list, render);
-                    render.Draw(map, person, list);
-                    gui.ShowFPS(map);
-                    input.GetInputMenu(person, map, render);
+                    list.Add(new Monster(map));
                 }
-            }
-            else
-            {
-                Environment.Exit(0);
+
+                if (menuChoise == 0)
+                {
+                    Console.Clear();
+
+                    while (exit.EndOfGame())
+                    {
+                        gui.FPSCounter();
+                        Console.SetCursorPosition(0, 0);
+                        foreach (var ent in list)
+                        {
+                            if (ent is Monster m)
+                            {
+                                m.UpdatePosition(person, map);
+                            }
+                        }
+                        person.CheckCollisions(list, render);
+                        render.Draw(map, person, list);
+                        gui.ShowFPS(map);
+                        input.GetInputMenu(person, map, render);
+                    }
+
+
+                    Console.Clear();
+
+                    Thread.Sleep(2000);
+
+                }
+                else if (menuChoise == 1)
+                {
+                    Console.Clear();
+                    if (set.GetInputSettings() == 2)
+                    {
+                        Console.Clear();
+                        continue;
+                    }
+                }
+                else
+                {
+                    break;
+                }
             }
         }
     }
@@ -58,7 +94,7 @@ namespace CaveGame
     "#        #     #        #####     #        ######                                                 #                    #",
     "#        #     #     ####         #   #####                                                       #                    #",
     "#        #     #                  #                              #             #                  #                    #",
-    "#              #######            #                              #             #                  #                    #",
+    "#              #######                                           #             #                  #                    #",
     "#                                 #   #             ########     #             #                                       #",
     "#                                 #   #             #            #     #       #     #########  ################   #####",
     "#                         ####    #   ####          #            #     #       #######                                 #",
@@ -73,7 +109,7 @@ namespace CaveGame
     "#                  #      ####    #                     #        #             #          #                            #",
     "#         #        #      #       #      #              #        #             #          #                            #",
     "#         #        #              #      #                       #             #          #                            #",
-    "#    ######        #              #      #        #######        #             #          #            ##########  #####",
+    "#    ######        #                     #        #######        #             #          #            ##########  #####",
     "#         #        #              #      #     ####   #                        #          #            #               #",
     "#         #        ########  ######                   #          #    ####     #                       #               #",
     "#         #        #              #                   #          #  ###        #          #            #               #",
@@ -173,7 +209,7 @@ namespace CaveGame
                     if (ent is Monster monster)
                     {
                         Console.SetCursorPosition(monster.entityX, monster.entityY);
-                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
                         Console.Write(monster.entity);
                         Console.ResetColor();
 
@@ -182,6 +218,13 @@ namespace CaveGame
                             Console.SetCursorPosition(monster.lastEntityX, monster.lastEntityY);
                             Console.WriteLine(map.GetCharOfMap(monster.lastEntityY, monster.lastEntityX));
                         }
+                    }
+                    if (ent is ExitSymbol exit)
+                    {
+                        Console.SetCursorPosition(exit.entityX, exit.entityY);
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write(exit.entity);
+                        Console.ResetColor();
                     }
                 }
             }
@@ -213,8 +256,15 @@ namespace CaveGame
                         }
                         if (ent is Monster monster)
                         {
-                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.ForegroundColor = ConsoleColor.DarkRed;
                             Console.Write(monster.entity);
+                            Console.ResetColor();
+                        }
+                        if (ent is ExitSymbol exit)
+                        {
+                            Console.SetCursorPosition(exit.entityX, exit.entityY);
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Write(exit.entity);
                             Console.ResetColor();
                         }
                     }
@@ -268,18 +318,91 @@ namespace CaveGame
         public int lastEntityX { get; protected set; }
         public int lastEntityY { get; protected set; }
 
+        protected DateTime lastMoveTime = DateTime.MinValue;
+        private Queue<(int, int)> visitedCells = new Queue<(int, int)>();
+        private int visionRadius = 20;
+        private int memorySize = 50;
+
+        private static Random rnd = new Random();
+
         public void PersonLastPosition()
         {
             lastEntityX = entityX;
             lastEntityY = entityY;
         }
 
-        public void UpdatePosition(GameMap map)
+        public virtual void UpdatePosition(Person player, GameMap map)
         {
-            if (map.GetCharOfMap(entityY, entityX) != '#')
+            if ((DateTime.Now - lastMoveTime).TotalSeconds < (double)Settings.selectedSpeed / 10.0)
             {
-
+                return;
             }
+
+            lastMoveTime = DateTime.Now;
+
+            int distanceToPlayer = Math.Abs(entityX - player.entityX) + Math.Abs(entityY - player.entityY);
+
+            visitedCells.Enqueue((entityX, entityY));
+
+            if (visitedCells.Count > memorySize)
+            {
+                visitedCells.Dequeue();
+            }
+
+            PersonLastPosition();
+
+            var directions = new List<(int x, int y)>();
+
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+
+                    int nx = entityX + dx;
+                    int ny = entityY + dy;
+
+                    if (nx >= 0 && nx < map.mapWidth && ny >= 0 && ny < map.mapHeight && map.GetCharOfMap(ny, nx) != '#')
+                    {
+                        directions.Add((nx, ny));
+                    }
+                }
+            }
+
+            (int x, int y) nextStep;
+
+            if (distanceToPlayer <= visionRadius)
+            {
+                var bestMoves = directions.OrderBy(m =>
+                    Math.Abs(m.x - player.entityX) + Math.Abs(m.y - player.entityY)
+                ).ToList();
+
+                nextStep = bestMoves.FirstOrDefault(m => !visitedCells.Contains(m));
+
+                if (nextStep == default)
+                {
+                    nextStep = bestMoves[0];
+                }
+            }
+            else
+            {
+                var freshMoves = directions.Where(m => !visitedCells.Contains(m)).ToList();
+
+                if (freshMoves.Count > 0)
+                {
+                    nextStep = freshMoves[rnd.Next(freshMoves.Count)];
+                }
+                else
+                {
+                    nextStep = directions[rnd.Next(directions.Count)];
+                }
+            }
+
+            entityX = nextStep.x;
+            entityY = nextStep.y;
         }
 
         public void CheckCollisions(List<Entity> list, Render render)
@@ -299,6 +422,11 @@ namespace CaveGame
                     {
                         Environment.Exit(0);
                     }
+                    if (ent is ExitSymbol exit)
+                    {
+                        list.RemoveAt(i);
+                        ent.entityY = -1;
+                    }
                 }
             }
         }
@@ -315,7 +443,6 @@ namespace CaveGame
 
         public void TryMovePerson(int newY, int newX, GameMap map)
         {
-
             if (newX >= 0 && newX <= map.mapWidth - 2 && newY >= 0 && newY <= map.mapHeight - 2)
             {
                 if (map.GetCharOfMap(newY, newX) != '#')
@@ -350,16 +477,54 @@ namespace CaveGame
     class Monster : Entity
     {
         private static Random rnd = new Random();
+
         public Monster(GameMap map)
         {
             entity = '&';
-            if (map.GetCharOfMap(entityY, entityX) == '#')
-            {
+
+             while (map.GetCharOfMap(entityY, entityX) == '#')
+             {
                 entityX = rnd.Next(50, map.mapWidth - 2);
                 entityY = rnd.Next(1, map.mapHeight - 2);
+             }
+        }
+
+        public new void UpdatePosition(Person player, GameMap map)
+        {
+            PersonLastPosition();
+            base.UpdatePosition(player, map);
+        }
+    }
+
+    class ExitSymbol : Entity
+    {
+        private static Random rnd = new Random();
+        private DateTime time = DateTime.Now;
+
+        public ExitSymbol(GameMap map)
+        {
+            while (true)
+            {
+                entityX = map.mapWidth - 2;
+                entityY = rnd.Next(1, map.mapHeight - 2);
+
+                if (map.GetCharOfMap(entityY, entityX) != '#')
+                {
+                    entity = 'X';
+                    break;
+                }
             }
         }
 
+        public bool EndOfGame()
+        {
+            if (entityY == -1)
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 
     class GetInput
