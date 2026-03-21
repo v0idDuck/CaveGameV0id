@@ -58,7 +58,7 @@ namespace CaveGame
                         }
                         person.CheckCollisions(list, render);
                         render.Draw(map, person, list);
-                        gui.ShowFPS(map);
+                        gui.ShowFPS();
                         input.GetInputMenu(person, map, render);
                     }
 
@@ -71,7 +71,7 @@ namespace CaveGame
                 else if (menuChoise == 1)
                 {
                     Console.Clear();
-                    if (set.GetInputSettings() == 2)
+                    if (set.GetInputSettings() == 3)
                     {
                         Console.Clear();
                         continue;
@@ -131,7 +131,7 @@ namespace CaveGame
 
     class Render
     {
-        public bool visionFlag { get; private set; } = false;
+        public bool visionFlag { get; private set; } = Settings.selectedRender;
         public bool fieldOnScreen = false;
         private DateTime lightEnd = DateTime.MinValue;
 
@@ -143,8 +143,14 @@ namespace CaveGame
             visionFlag = !visionFlag;
 
 
-            if (visionFlag) lightEnd = DateTime.Now.AddYears(1);
-            else lightEnd = DateTime.MinValue;
+            if (visionFlag)
+            {
+                lightEnd = DateTime.Now.AddYears(1);
+            }
+            else
+            {
+                lightEnd = DateTime.MinValue;
+            }
         }
 
         public void ActivateVision()
@@ -155,10 +161,13 @@ namespace CaveGame
 
         public void Draw(GameMap map, Person person, List<Entity> list)
         {
-            if (visionFlag && DateTime.Now > lightEnd)
+            if (Settings.selectedRender == false)
             {
-                visionFlag = false;
-                Console.Clear();
+                if (visionFlag && DateTime.Now > lightEnd)
+                {
+                    visionFlag = false;
+                    Console.Clear();
+                }
             }
 
             if (visionFlag)
@@ -460,15 +469,18 @@ namespace CaveGame
 
         public Light(GameMap map, char entity)
         {
-            while (true)
+            if (Settings.selectedRender == false)
             {
-                entityX = rnd.Next(1, map.mapWidth - 2);
-                entityY = rnd.Next(1, map.mapHeight - 2);
-
-                if (map.GetCharOfMap(entityY, entityX) != '#')
+                while (true)
                 {
-                    this.entity = entity;
-                    break;
+                    entityX = rnd.Next(1, map.mapWidth - 2);
+                    entityY = rnd.Next(1, map.mapHeight - 2);
+
+                    if (map.GetCharOfMap(entityY, entityX) != '#')
+                    {
+                        this.entity = entity;
+                        break;
+                    }
                 }
             }
         }
@@ -597,7 +609,7 @@ namespace CaveGame
             frames++;
         }
 
-        public void ShowFPS(GameMap map)
+        public void ShowFPS()
         {
 
             if ((DateTime.Now - lastTime).TotalSeconds >= 1.0)
@@ -606,7 +618,7 @@ namespace CaveGame
                 frames = 0;
                 lastTime = DateTime.Now;
 
-                Console.SetCursorPosition(0, map.mapHeight);
+                Console.SetCursorPosition(0, 29);
                 Console.Write($"FPS: {FPS} ");
             }
         }

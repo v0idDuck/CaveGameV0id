@@ -7,8 +7,10 @@ namespace Config
         public int selectedButton = 0;
         public static int selectedSpeed = 3;
         public static int selectedQuantity = 1;
+        public static bool selectedRender = false;
         public string AmountMonsters { get; } = "Количество монстров: ";
         public string MonstersSpeed { get; } = "Скорость монстров: ";
+        public string Render { get; } = "Ограниченная видимость: ";
         public string Back { get; } = "Назад";
         public string symbol { get; } = "<";
 
@@ -22,7 +24,11 @@ namespace Config
             {3, "медленная"}
         };
 
-
+        private Dictionary<bool, string> renderList = new Dictionary<bool, string>
+        {
+            {false, "да"},
+            {true, "нет"}
+        };
 
         public void ShowSettings()
         {
@@ -36,25 +42,42 @@ namespace Config
                 Console.SetCursorPosition(centerX, centerY + 1);
                 Console.WriteLine(AmountMonsters + selectedQuantity + " ");
                 Console.SetCursorPosition(centerX, centerY + 2);
+                Console.WriteLine(Render + renderList[selectedRender] + " ");
+                Console.SetCursorPosition(centerX, centerY + 3);
                 Console.WriteLine(Back + " ");
             }
             else if (selectedButton == 1)
             {
                 Console.SetCursorPosition(centerX, centerY);
-                Console.WriteLine(MonstersSpeed + speedList[selectedSpeed] + " ");
+                Console.WriteLine(MonstersSpeed + speedList[selectedSpeed] + "   ");
                 Console.SetCursorPosition(centerX, centerY + 1);
                 Console.WriteLine(AmountMonsters + selectedQuantity + symbol + " ");
                 Console.SetCursorPosition(centerX, centerY + 2);
+                Console.WriteLine(Render + renderList[selectedRender] + " ");
+                Console.SetCursorPosition(centerX, centerY + 3);
+                Console.WriteLine(Back + " ");
+            }
+            else if (selectedButton == 2)
+            {
+                Console.SetCursorPosition(centerX, centerY);
+                Console.WriteLine(MonstersSpeed + speedList[selectedSpeed] + "   ");
+                Console.SetCursorPosition(centerX, centerY + 1);
+                Console.WriteLine(AmountMonsters + selectedQuantity + " ");
+                Console.SetCursorPosition(centerX, centerY + 2);
+                Console.WriteLine(Render + renderList[selectedRender] + symbol + " ");
+                Console.SetCursorPosition(centerX, centerY + 3);
                 Console.WriteLine(Back + " ");
             }
             else
             {
                 Console.SetCursorPosition(centerX, centerY);
-                Console.WriteLine(MonstersSpeed + speedList[selectedSpeed]);
+                Console.WriteLine(MonstersSpeed + speedList[selectedSpeed] + "   ");
                 Console.SetCursorPosition(centerX, centerY + 1);
                 Console.WriteLine(AmountMonsters + selectedQuantity + " ");
                 Console.SetCursorPosition(centerX, centerY + 2);
-                Console.WriteLine(Back + symbol);
+                Console.WriteLine(Render + renderList[selectedRender] + " ");
+                Console.SetCursorPosition(centerX, centerY + 3);
+                Console.WriteLine(Back + symbol + " ");
             }
         }
 
@@ -77,9 +100,9 @@ namespace Config
                 switch (key.Key)
                 {
                     case ConsoleKey.Enter:
-                        if (selectedButton == 2)
+                        if (selectedButton == 3)
                         {
-                            return 2;
+                            return 3;
                         }
                         break;
                     case ConsoleKey.W:
@@ -89,7 +112,7 @@ namespace Config
                         }
                         break;
                     case ConsoleKey.S:
-                        if (selectedButton < 2)
+                        if (selectedButton < 3)
                         {
                             selectedButton++;
                         }
@@ -109,6 +132,10 @@ namespace Config
                                 selectedQuantity--;
                             }
                         }
+                        else if (selectedButton == 2)
+                        {
+                            selectedRender = !selectedRender;
+                        }
                         break;
                     case ConsoleKey.D:
                         if (selectedButton == 0)
@@ -124,6 +151,10 @@ namespace Config
                             {
                                 selectedQuantity++;
                             }
+                        }
+                        else if (selectedButton == 2)
+                        {
+                            selectedRender = !selectedRender;
                         }
                         break;
                 }
