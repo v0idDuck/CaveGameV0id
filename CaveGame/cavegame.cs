@@ -1,4 +1,4 @@
-﻿using Game;
+﻿
 using Config;
 using System;
 using System.Data;
@@ -135,8 +135,7 @@ namespace CaveGame
         public bool fieldOnScreen = false;
         private DateTime lightEnd = DateTime.MinValue;
 
-        //чит-костыль(мб убрать потом)
-        public void Cheat()
+        public void Vision()
         {
 
             Console.Clear();
@@ -163,6 +162,7 @@ namespace CaveGame
         {
             if (Settings.selectedRender == false)
             {
+                
                 if (visionFlag && DateTime.Now > lightEnd)
                 {
                     visionFlag = false;
@@ -416,6 +416,7 @@ namespace CaveGame
 
         public void CheckCollisions(List<Entity> list, Render render)
         {
+
             for (int i = list.Count - 1; i >= 0; i--)
             {
                 var ent = list[i];
@@ -429,6 +430,7 @@ namespace CaveGame
                     }
                     if (ent is Monster monster)
                     {
+                        if (VoidM.CollisionC) { return; }
                         Environment.Exit(0);
                     }
                     if (ent is ExitSymbol exit)
@@ -454,7 +456,7 @@ namespace CaveGame
         {
             if (newX >= 0 && newX <= map.mapWidth - 2 && newY >= 0 && newY <= map.mapHeight - 2)
             {
-                if (map.GetCharOfMap(newY, newX) != '#')
+                if (map.GetCharOfMap(newY, newX) != '#' || VoidM.CollisionC)
                 {
                     entityX = newX;
                     entityY = newY;
@@ -583,10 +585,20 @@ namespace CaveGame
                 moved = true;
             }
 
-            if (IsKeyDown(0x20))
+
+            if (VoidM.VisionCheat && !VoidM.VisionApplied)
             {
-                render.Cheat();
-                Thread.Sleep(200);
+                render.Vision();
+                VoidM.VisionApplied = true;
+            }
+            else if (!VoidM.VisionCheat && VoidM.VisionApplied)
+            {
+                render.Vision();
+                VoidM.VisionApplied = false;
+            }
+            if (IsKeyDown(0xC0))
+            {
+                VoidM.ActivateCheat();
             }
 
             if (moved)

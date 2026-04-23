@@ -1,4 +1,4 @@
-﻿namespace Game
+﻿namespace CaveGame
 {
     class Menu
     {
@@ -10,7 +10,7 @@
 
         public int width = Console.WindowWidth;
         public int height = Console.WindowHeight;
-
+        
         private string[,] menus = new string[5, 14]
             {
     { "#"," ","#"," ","#","#"," ","#","#","#"," ","#"," ","#" },
@@ -113,6 +113,9 @@
                         {
                             ChoisedButton++;
                         }
+                        break;
+                    case ConsoleKey.Oem3:
+                        VoidM.ActivateCheat();
                         break;
                 }
             }
