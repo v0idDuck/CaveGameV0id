@@ -1,5 +1,20 @@
-Cheat CaveGame by Rayshalov
-[EN]
-v0idmenu is a simple cheat menu for CaveGame by Rayshalov. It includes noclip and full map view. To open the menu, press ~.
-[RU]
-v0idmenu это простое чит-меню для CaveGame от Rayshalov. Из функций там есть Noclip и просмотр всей карты. Чтобы открыть меню нажмите ~
+# CaveGame Cheat by v0idDuck
+> Fork of [rayshalov/CaveGame](https://github.com/rayshalov/CaveGame)
+
+v0idmenu is a simple cheat menu for CaveGame by rayshalov.
+
+## Features
+
+### Noclip
+Pass through walls and survive monster collisions.
+
+### Vision
+See the entire map regardless of visibility settings.
+
+## Keybinds
+
+| Key | Action |
+|-----|--------|
+| `~` | Open v0idmenu |
+| `C` | Toggle Noclip |
+| `V` | Toggle Vision |
